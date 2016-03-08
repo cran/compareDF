@@ -1,0 +1,13 @@
+49b1da632ea3a03368e8651ce3a0ec40 *DESCRIPTION
+e580c4f6b263e1d62b11b901963299cc *LICENSE
+1a4e45426a6db9a4f85929c513220bda *NAMESPACE
+b7cd730f9a618b61a9f492452e90e4ce *NEWS.md
+acf832c060a8d1421154383b83fdd33c *R/fnsComparison.R
+c1848cfc6b45421325a0924b8ae99e98 *R/zzz.R
+ae7ffd48da277e07368d9e89563ceda2 *data/results_2010.rda
+269eeff6366e790d1f538b4741d7ed10 *data/results_2011.rda
+69502560369ec2e9f53a495706f035c7 *man/compare_df.Rd
+b41f383f22f417b5c71215977b2e4b81 *man/results_2010.Rd
+7e6e7cf6ef33e2acb29add710147a336 *man/results_2011.Rd
+9119c6400d80b83afe2e023417e0cb9a *tests/testthat.R
+faf58cc7f9484c7efafb862115ed4823 *tests/testthat/test-fnsComparison.R
