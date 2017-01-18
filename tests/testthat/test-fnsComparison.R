@@ -15,6 +15,20 @@ ctable = compare_df(new_df, old_df, c("var1"))
 expected_comparison_df = data.frame(var1 = ("C"), chng_type = c("+", "-"), val1 = c(4,3))
 expect_equal(expected_comparison_df[1,3], ctable$comparison_df[1,3])
 
+df1 <- data.frame(a = 1:5, b=letters[1:5], row = 1:5)
+df2 <- data.frame(a = 1:3, b=letters[1:3], row = 1:3)
+
+df_compare = compare_df(df1, df2, "row")
+expected_df = data.frame(row = c(4, 5), chng_type = "+", a = c(4, 5), b = c("d", "e"))
+expect_equal(df_compare$comparison_df, expected_df)
+
+#===============================================================================
+# Case when there are only new rows
+new_df = data.frame(var1 = c("A", "B"), val1 = c(1, 2))
+ctable = compare_df(new_df, old_df, c("var1"), tolerance = 0.5)
+
+expected_comparison_df = data.frame(var1 = c('C'), chng_type = c("-"), val1 = c(3))
+expect_equal(ctable$comparison_df, expected_comparison_df)
 #===============================================================================
 # Testing errors and warnings
 # Test for sameness
@@ -101,10 +115,14 @@ expected_comparison_df = data.frame(grp = c(3, 4),
                                     chng_type = c("+", "-"),
                                     var1 = c("C", "C"),
                                     var2 = c("W", "X"),
-                                    val1 = c(3,3),
+                                    val1 = c(3, 3),
                                     val2 = c("C2", "C1"),
                                     val3 = c(4.0, 3.0))
 expect_equal(ctable$comparison_df, expected_comparison_df)
 
+# Error
+expect_error(compare_df(new_df %>% head(2), old_df %>% head(2), c("var1", "var2"), tolerance = 1))
+
 #===============================================================================
 # For later: Two types of tolerance
+

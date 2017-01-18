@@ -43,6 +43,9 @@ compare_df <- function(df_new, df_old, group_col, exclude = NULL, limit_html = 1
   comparison_table_ts2char = comparison_table_ts2char %>% eliminate_tolerant_rows(comparison_table_diff)
   comparison_table_diff    = eliminate_tolerant_rows(comparison_table_diff, comparison_table_diff)
 
+  if(nrow(comparison_table) == 0) stop("The two data frames are the same after accounting for tolerance!")
+  if(nrow(comparison_table_diff) == 0) stop("The two data frames are the same after accounting for tolerance!")
+
   if (limit_html > 0)
     html_table = create_html_table(comparison_table_diff, comparison_table_ts2char, group_col, limit_html) else
       html_table = NULL
@@ -87,7 +90,11 @@ combined_rowdiffs <- function(both_tables){
 
 create_comparison_table <- function(both_diffs, group_col){
   message("Creating comparison table...")
-  rbind(data.frame(chng_type = "1", both_diffs$df1_2) , data.frame(chng_type = "2", both_diffs$df2_1)) %>%
+  mixed_df = NULL
+  if(nrow(both_diffs$df1_2) != 0) mixed_df = mixed_df %>% rbind(data.frame(chng_type = "1", both_diffs$df1_2))
+  if(nrow(both_diffs$df2_1) != 0) mixed_df = mixed_df %>% rbind(data.frame(chng_type = "2", both_diffs$df2_1))
+
+  mixed_df %>%
     arrange(desc(chng_type)) %>% arrange_(group_col) %>%
     mutate(chng_type = ifelse(chng_type == 1, "1", "2")) %>%
     select(one_of(group_col), everything()) %>% r2two()
@@ -122,7 +129,7 @@ create_html_table <- function(comparison_table_diff, comparison_table_ts2char, g
   shading = ifelse(sequence_order_vector(comparison_table_ts2char[[group_col]]) %% 2, "#dedede", "white")
 
   table_css = lapply(comparison_table_color_code, function(x)
-    paste0("padding: .2em; color: ", x, ";")) %>% data.frame %>% head(limit_html)
+    paste0("padding: .2em; color: ", x, ";")) %>% data.frame %>% head(limit_html) %>% as.matrix()
 
   message("Creating HTML table for first ", limit_html, " rows")
   html_table = htmlTable::htmlTable(comparison_table_ts2char %>% head(limit_html),
@@ -213,12 +220,14 @@ sequence_order_vector <- function(data)
 }
 
 create_change_count <- function(comparison_table_ts2char, group_col){
-
   change_count = comparison_table_ts2char %>% group_by_(group_col, "chng_type") %>% tally()
-  change_count_replace = change_count %>% tidyr::spread(key = chng_type, value = n)
+  change_count_replace = change_count %>% tidyr::spread(key = chng_type, value = n) %>% data.frame
   change_count_replace[is.na(change_count_replace)] = 0
+
+  if(is.null(change_count_replace[['X1']])) change_count_replace[['X1']] = 0L
+  if(is.null(change_count_replace[['X2']])) change_count_replace[['X2']] = 0L
   change_count_replace = change_count_replace %>% as.data.frame %>%
-    tidyr::gather_("variable", "value", c("2", "1"))
+    tidyr::gather_("variable", "value", c("X2", "X1"))
 
   change_count = change_count_replace %>% group_by_(group_col) %>% arrange_('variable') %>%
     summarize(changes = min(value), additions = value[1] - value[2], removals = value[2] - value[1]) %>%
