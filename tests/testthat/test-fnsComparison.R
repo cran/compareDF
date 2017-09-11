@@ -29,14 +29,46 @@ ctable = compare_df(new_df, old_df, c("var1"), tolerance = 0.5)
 
 expected_comparison_df = data.frame(var1 = c('C'), chng_type = c("-"), val1 = c(3))
 expect_equal(ctable$comparison_df, expected_comparison_df)
+
+#===============================================================================
+# Case when there are only new rows
+old_df = data.frame(var1 = c("A", "B", "C"),
+                    val1 = c(1, 2, 3))
+new_df = data.frame(var1 = c("A", "B"), val1 = c(1, 2))
+ctable = compare_df(new_df, old_df, c("var1"), tolerance = 0.5)
+
+expected_comparison_df = data.frame(var1 = c('C'), chng_type = c("-"), val1 = c(3))
+expect_equal(ctable$comparison_df, expected_comparison_df)
+
+#===============================================================================
+# Case when the column order is different
+old_df = data.frame(var1 = c("A", "B", "C"),
+                    val1 = c(1, 2, 3))
+new_df = data.frame(val1 = c(1, 2), var1 = c("A", "B"))
+ctable = compare_df(new_df, old_df, c("var1"), tolerance = 0.5)
+
+expected_comparison_df = data.frame(var1 = c('C'), chng_type = c("-"), val1 = c(3))
+expect_equal(ctable$comparison_df, expected_comparison_df)
+
+#===============================================================================
+# Case when the row order is different
+old_df = data.frame(var1 = c("A", "C", "B"), val1 = c(1, 3, 2))
+new_df = data.frame(var1 = c("A", "B", "C"), val1 = c(1, 2, 3))
+expect_error(compare_df(new_df, old_df, c("var1"), tolerance = 0.5), "The two dataframes are similar after reordering")
+
+#===============================================================================
+# Case when the row order is different after unique
+old_df = data.frame(var1 = c("A", "C", "B", "C"), val1 = c(1, 3, 2, 3))
+new_df = data.frame(var1 = c("A", "B", "C"), val1 = c(1, 2, 3))
+expect_error(compare_df(new_df, old_df, c("var1"), tolerance = 0.5), "The two dataframes are similar after reordering and doing unique")
+
 #===============================================================================
 # Testing errors and warnings
 # Test for sameness
-expect_error(compare_df(new_df, new_df),
-             "The two data frames are the same")
+expect_error(compare_df(new_df, new_df, "var1"), "The two data frames are the same")
 
 # Test for sameness after exclusion
-expect_error(compare_df(new_df, new_df),
+expect_error(compare_df(new_df, new_df, "var1"),
              "The two data frames are the same")
 
 # Test for different structure
@@ -70,7 +102,13 @@ new_df = data.frame(var1 = c("A", "B", "C"),
 ctable = compare_df(new_df, old_df, c("var1", "var2"))
 
 # Table
-ctable$comparison_table_diff
+#===============================================================================
+# Change Count
+expected_change_count_df = data.frame( grp = c(2, 3, 4),
+                                       changes = c(1, 0, 0),
+                                       additions = c(0, 1, 0),
+                                       removals = c(0, 0, 1) )
+expect_equal(ctable$change_count, expected_change_count_df)
 
 #===============================================================================
 # Multiple Grouping / Exclude
@@ -123,6 +161,17 @@ expect_equal(ctable$comparison_df, expected_comparison_df)
 # Error
 expect_error(compare_df(new_df %>% head(2), old_df %>% head(2), c("var1", "var2"), tolerance = 1))
 
+#===========================
+# Negative Numbers
+old_df = data.frame(var1 = c("A", "B", "C"),
+                    val1 = c(1, 2, 3))
+
+new_df = data.frame(var1 = c("A", "B", "C"),
+                    val1 = c(1, 2, -3))
+
+ctable = compare_df(new_df, old_df, c("var1"))
+expected_comparison_df = data.frame(var1 = ("C"), chng_type = c("+", "-"), val1 = c(-3,3))
+expect_equal(expected_comparison_df, ctable$comparison_df)
+
 #===============================================================================
 # For later: Two types of tolerance
-
