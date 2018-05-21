@@ -13,6 +13,9 @@
 #' @param tolerance The amount in fraction to which changes are ignored while showing the
 #'  visual representation. By default, the value is 0 and any change in the value of variables
 #'  is shown off. Doesn't apply to categorical variables.
+#' @param keep_unchanged whether to preserve unchanged values or not. Defaults to FALSE
+#' @param color_scheme What color scheme to use for the HTML output. Should be a vector/list with
+#'  named_elements. Default - c("addition" = "green", "removal" = "red", "unchanged_cell" = "gray", "unchanged_row" = "deepskyblue")
 #' @import dplyr
 #' @export
 #' @examples
@@ -23,7 +26,9 @@
 #' ctable = compare_df(new_df, old_df, c("var1"))
 #' print(ctable$comparison_df)
 #' ctable$html_output
-compare_df <- function(df_new, df_old, group_col, exclude = NULL, limit_html = 100, tolerance = 0, stop_on_error = TRUE){
+compare_df <- function(df_new, df_old, group_col, exclude = NULL, limit_html = 100, tolerance = 0,
+                       stop_on_error = TRUE, keep_unchanged = FALSE,
+                       color_scheme = c("addition" = "green", "removal" = "red", "unchanged_cell" = "gray", "unchanged_row" = "deepskyblue")){
 
   both_tables = list(df_new = df_new, df_old = df_old)
   if(!is.null(exclude)) both_tables = exclude_columns(both_tables, exclude)
@@ -41,6 +46,7 @@ compare_df <- function(df_new, df_old, group_col, exclude = NULL, limit_html = 1
   check_if_similar_after_unique_and_reorder(both_tables, both_diffs, stop_on_error)
 
   comparison_table         = create_comparison_table(both_diffs, group_col)
+
   comparison_table_ts2char = .ts2char(comparison_table)
   comparison_table_diff    = create_comparison_table_diff(comparison_table_ts2char, group_col, tolerance)
 
@@ -48,11 +54,22 @@ compare_df <- function(df_new, df_old, group_col, exclude = NULL, limit_html = 1
   comparison_table_ts2char = comparison_table_ts2char %>% eliminate_tolerant_rows(comparison_table_diff)
   comparison_table_diff    = eliminate_tolerant_rows(comparison_table_diff, comparison_table_diff)
 
+  if(keep_unchanged) {
+
+    comparison_table = comparison_table %>% keep_unchanged_rows(both_tables, group_col, "val_table")
+    comparison_table_ts2char = comparison_table_ts2char %>% keep_unchanged_rows(both_tables, group_col, "val_table")
+    comparison_table_diff    = comparison_table_diff %>% keep_unchanged_rows(both_tables, group_col, "color_table")
+
+    comparison_table_diff = comparison_table_diff[order(comparison_table[[group_col]]),]
+    comparison_table_ts2char = comparison_table_ts2char[order(comparison_table[[group_col]]),]
+    comparison_table = comparison_table[order(comparison_table[[group_col]]),]
+  }
+
   if(nrow(comparison_table) == 0) stop_or_warn("The two data frames are the same after accounting for tolerance!", stop_on_error)
   if(nrow(comparison_table_diff) == 0) stop_or_warn("The two data frames are the same after accounting for tolerance!", stop_on_error)
 
   if (limit_html > 0 & nrow(comparison_table_diff) > 0 & nrow(comparison_table) > 0)
-    html_table = create_html_table(comparison_table_diff, comparison_table_ts2char, group_col, limit_html) else
+    html_table = create_html_table(comparison_table_diff, comparison_table_ts2char, group_col, limit_html, color_scheme) else
       html_table = NULL
   change_count =  create_change_count(comparison_table, group_col)
   change_summary =  create_change_summary(change_count, both_tables)
@@ -60,22 +77,28 @@ compare_df <- function(df_new, df_old, group_col, exclude = NULL, limit_html = 1
   comparison_table$chng_type = comparison_table$chng_type %>% replace_numbers_with_symbols()
   comparison_table_diff = comparison_table_diff %>% replace_numbers_with_symbols()
 
-  output = list(comparison_df = comparison_table, html_output = html_table,
-                comparison_table_diff = comparison_table_diff,
-                change_count = change_count, change_summary = change_summary)
+  list(comparison_df = comparison_table, html_output = html_table,
+       comparison_table_diff = comparison_table_diff,
+       change_count = change_count, change_summary = change_summary)
 
 }
 
-# empty_output <= function(){
-#
-# }
+keep_unchanged_rows <- function(comparison_table, both_tables, group_col, type){
+  unchanged_rows = lapply(both_tables, function(x) x[!(x[[group_col]] %in% comparison_table[[group_col]]), ] ) %>%
+    Reduce(rbind, .) %>% dplyr::mutate(chng_type = '0')
+
+  if(type == 'color_table') unchanged_rows[] = -1
+  comparison_table %>% rbind(unchanged_rows)
+}
+
 
 replace_numbers_with_symbols <- function(x){
   if(is.vector(x) && length(x) == 0) return(x)
   if(is.data.frame(x) && nrow(x) == 0) return(x)
   x[x == 2] = "+"
   x[x == 1] = "-"
-  x[x == 0] = "."
+  x[x == 0] = "="
+  x[x == -1] = "="
   x
 }
 
@@ -117,7 +140,7 @@ create_comparison_table <- function(both_diffs, group_col){
   if(nrow(both_diffs$df2_1) != 0) mixed_df = mixed_df %>% rbind(data.frame(chng_type = "2", both_diffs$df2_1))
   mixed_df %>%
     arrange(desc(chng_type)) %>% arrange_(group_col) %>%
-    mutate(chng_type = ifelse(chng_type == 1, "1", "2")) %>%
+    # mutate(chng_type = ifelse(chng_type == 1, "1", "2")) %>%
     select(one_of(group_col), everything()) %>% r2two()
 }
 
@@ -134,7 +157,7 @@ eliminate_tolerant_rows <- function(comparison_table, comparison_table_diff){
 }
 
 #' @importFrom utils head
-create_html_table <- function(comparison_table_diff, comparison_table_ts2char, group_col, limit_html){
+create_html_table <- function(comparison_table_diff, comparison_table_ts2char, group_col, limit_html, color_scheme){
 
   comparison_table_ts2char$chng_type = comparison_table_ts2char$chng_type %>% replace_numbers_with_symbols()
 
@@ -145,7 +168,7 @@ create_html_table <- function(comparison_table_diff, comparison_table_ts2char, g
     message("Truncating HTML diff table to ", limit_html, " rows...")
 
   requireNamespace("htmlTable")
-  comparison_table_color_code  = comparison_table_diff %>% do(.colour_coding_df(.)) %>% as.data.frame
+  comparison_table_color_code  = comparison_table_diff %>% do(.colour_coding_df(., color_scheme)) %>% as.data.frame
 
   shading = ifelse(sequence_order_vector(comparison_table_ts2char[[group_col]]) %% 2, "#dedede", "white")
 
@@ -182,16 +205,18 @@ r2two <- function(df, round_digits = 2)
   df
 }
 
-.colour_coding_df <- function(df){
+.colour_coding_df <- function(df, color_scheme){
   if(nrow(df) == 0) return(df)
-  df[df == 2] = "green"
-  df[df == 1] = "red"
-  df[df == 0] = "grey"
+  df[df == 2] = color_scheme[['addition']]
+  df[df == 1] = color_scheme[['removal']]
+  df[df == 0] = color_scheme[['unchanged_cell']]
+  df[df == -1] = color_scheme[['unchanged_row']]
   df
 }
 
 #' @importFrom stats na.omit
 .diff_type_df <- function(df, tolerance = 1e-6){
+
   lapply(df, function(x) {
     len_unique_x = length(na.omit(unique(x)))
 
