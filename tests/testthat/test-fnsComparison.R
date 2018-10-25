@@ -2,6 +2,7 @@
 library(testthat)
 library(dplyr)
 library(compareDF)
+library(stringr)
 old_df = data.frame(var1 = c("A", "B", "C"),
                     val1 = c(1, 2, 3))
 
@@ -175,7 +176,7 @@ expect_equal(ctable$comparison_table_diff, comparison_table_expected)
 
 #===============================================================================
 context("compare_df: tolerance")
-ctable = compare_df(new_df, old_df, c("var1", "var2"), tolerance = 0.5)
+ctable = compare_df(new_df, old_df, c("var1", "var2"), tolerance = 0.06)
 expected_comparison_df = data.frame(grp = c(3, 4),
                                     chng_type = c("+", "-"),
                                     var1 = c("C", "C"),
@@ -185,6 +186,18 @@ expected_comparison_df = data.frame(grp = c(3, 4),
                                     val3 = c(4.0, 3.0))
 expect_equal(ctable$comparison_df, expected_comparison_df)
 
+context("compare_df: tolerance with compare_type = 'difference'")
+ctable = compare_df(new_df, old_df, c("var1", "var2"), tolerance = 0.06, tolerance_type = 'difference')
+expected_comparison_df = data.frame(grp = c(2, 2, 3, 4),
+                                    chng_type = c("+", "-", "+", "-"),
+                                    var1 = c("B", "B", "C", "C"),
+                                    var2 = c("Y", "Y", "W", "X"),
+                                    val1 = c(2, 2, 3, 3),
+                                    val2 = c("B1", "B1", "C2", "C1"),
+                                    val3 = c(2.1, 2.0, 4.0, 3.0))
+expect_equal(ctable$comparison_df, expected_comparison_df)
+
+expect_error(compare_df(new_df, old_df, c("var1", "var2"), tolerance = 0.06, tolerance_type = 'random'), "Unknown tolerance type")
 # Error
 expect_error(compare_df(new_df %>% head(2), old_df %>% head(2), c("var1", "var2"), tolerance = 1))
 
@@ -247,3 +260,100 @@ expect_equivalent(expected_comparison_table_diff, ctable$comparison_table_diff)
 expect_equivalent(expected_change_summary, ctable$change_summary)
 expect_equivalent(expected_change_count, ctable$change_count)
 #===============================================================================
+# Headers
+
+get_html_header_names <- function(ctable){
+  html_output_string = ctable$html_output %>% str_replace_all("\\n", "")
+
+  html_output_string %>%
+    str_extract("thead.*thead") %>%
+    str_extract_all("'>.+?<") %>%
+    magrittr::extract2(1) %>%
+    str_replace_all("'>(.*)<", "\\1")
+
+}
+
+context("compare_df: Headers")
+
+test_that("compare_df: headers with 1 grouping column", {
+  ctable = compare_df(new_df, old_df, c("var1"),
+                      html_headers = c(var1 = "Variable 1", var2 = "Variable 2", val1 = "Value 1", val2 = "Value 2", val3 = "Value 3"))
+
+  expected_headers = c("Variable 1", "chng_type", "Variable 2",
+                       "Value 1", "Value 2", "Value 3")
+  expect_equal(expected_headers, get_html_header_names(ctable))
+})
+
+
+
+test_that("compare_df: headers with partial matching", {
+  ctable = compare_df(new_df, old_df, c("var1"),
+                      html_headers = c(var1 = "Variable 1", val1 = "Value 1", val3 = "Value 3"))
+
+  expected_headers = c("Variable 1", "chng_type", "var2",
+                       "Value 1", "val2", "Value 3")
+  expect_equal(expected_headers, get_html_header_names(ctable))
+})
+
+test_that("compare_df: headers with additional matching", {
+  ctable = compare_df(new_df, old_df, c("var1"),
+                      html_headers = c(var1 = "Variable 1", var2 = "Variable 2", val1 = "Value 1", val2 = "Value 2", val4 = "Value 4"))
+
+  expected_headers = c("Variable 1", "chng_type", "Variable 2",
+                       "Value 1", "Value 2", "val3")
+  expect_equal(expected_headers, get_html_header_names(ctable))
+
+})
+
+test_that("compare_df: headers and group column and change column", {
+  ctable = compare_df(new_df, old_df, c("var1"),
+                      html_headers = c(var1 = "Variable 1", var2 = "Variable 2", val1 = "Value 1", val2 = "Value 2", val3 = "Value 3"),
+                      html_group_col_name = "Group ID", html_change_col_name = "Type of Change")
+  expected_headers = c("Variable 1", "Type of Change", "Variable 2",
+                       "Value 1", "Value 2", "Value 3")
+  expect_equal(expected_headers, get_html_header_names(ctable))
+})
+
+test_that("compare_df: only group column and change column", {
+  ctable = compare_df(new_df, old_df, c("var1"),
+                      html_group_col_name = "Group ID", html_change_col_name = "Type of Change")
+
+  expected_headers = c("var1", "Type of Change", "var2",
+                       "val1", "val2", "val3")
+  expect_equal(expected_headers, get_html_header_names(ctable))
+
+
+})
+
+test_that("compare_df: headers with more than 1 grouping column and group column and change column", {
+
+  ctable = compare_df(new_df, old_df, c("var1", "var2"),
+                      html_headers = c(var1 = "Variable 1", var2 = "Variable 2", val1 = "Value 1", val2 = "Value 2", val3 = "Value 3"),
+                      html_change_col_name = "Type of Change", html_group_col_name = "Group ID")
+
+  expected_headers = c("Group ID", "Type of Change", "Variable 1", "Variable 2",
+                       "Value 1", "Value 2", "Value 3")
+
+  expect_equal(expected_headers, get_html_header_names(ctable))
+})
+
+#===============================================================================
+
+context("compare_df: Integration Edge case")
+df_old = data.frame(a = c(1), b = c(1))
+df_new = data.frame(a = numeric(0), b = numeric(0))
+
+actual_comparison_summary = compare_df(df_new = df_new, df_old = df_old, group_col = c("a"))
+
+expected_comparison_df = data.frame(a = 1, chng_type = "-", b = 1)
+expected_comparison_table_diff = data.frame(a = "-", chng_type = "-", b = "-")
+expected_change_count = structure(list(a = 1, changes = 0, additions = 0, removals = 1),
+                                  .Names = c("a", "changes", "additions", "removals"),
+                                  class = c("tbl_df", "tbl", "data.frame"), row.names = c(NA, -1L))
+expected_change_summary = setNames(c(1, 0, 0, 0, 1), c("old_obs", "new_obs", "changes", "additions", "removals"))
+
+expect_equal(expected_comparison_df, actual_comparison_summary$comparison_df)
+expect_equal(expected_comparison_table_diff, actual_comparison_summary$comparison_table_diff)
+expect_equal(expected_change_count, actual_comparison_summary$change_count)
+expect_equal(expected_change_summary, actual_comparison_summary$change_summary)
+
