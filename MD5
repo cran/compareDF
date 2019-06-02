@@ -1,13 +1,13 @@
-fc91719c491f83945f8afbed541c624f *DESCRIPTION
+b40678612f13d6d3fbb51421de3e375b *DESCRIPTION
 e3c3d42ef4b8d6bf2044c385475dab30 *LICENSE
 aedf25ad452355e630a83f7b0f4ac72d *NAMESPACE
-a01882f1cb571a35c8409391f6c83532 *NEWS.md
-ffe89ad9f2e30f3f4794d3fab6aec38a *R/fnsComparison.R
+8a775a9dffe5194ea01ac2b97af29e1e *NEWS.md
+69d91141e2e0540e9f015f039a653fff *R/fnsComparison.R
 c1848cfc6b45421325a0924b8ae99e98 *R/zzz.R
-cc6acaea35fd9105d378f5f79f7ec62e *README.md
+844f6af62b3840f560b207041fe6e41c *README.md
 ae7ffd48da277e07368d9e89563ceda2 *data/results_2010.rda
 269eeff6366e790d1f538b4741d7ed10 *data/results_2011.rda
-b6e0dcc550f5263e13f5df11478b36b3 *man/compare_df.Rd
+cbf3d01fff37c821f9b1bc5c1b1c3e5e *man/compare_df.Rd
 7d8cd20f0948b1e42a2eae503619aa18 *man/figures/pic_1.png
 96f55244ab06a58e47f10ad101b0bfe3 *man/figures/pic_2.png
 d5e17a3ec3b47be1cca7e9d2e1692162 *man/figures/pic_3.png
@@ -15,4 +15,4 @@ c17f1a73f6abc3220efadaa3241295ab *man/results_2010.Rd
 59fb885e2c5ca6d1391f43fbb6ff1e63 *man/results_2011.Rd
 242450b2d5f990631c0d9b432efb75f4 *man/view_html.Rd
 9119c6400d80b83afe2e023417e0cb9a *tests/testthat.R
-534f8be58e508a5086519f4b90a5a93a *tests/testthat/test-fnsComparison.R
+8c5dbc24b70a4321ed01d619c9f90ced *tests/testthat/test-fnsComparison.R
