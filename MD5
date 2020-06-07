@@ -1,14 +1,15 @@
-2d82b4278ff085ba41f9d9b6a1a4ab12 *DESCRIPTION
+ea238f5cdd4871bc1859eef61af2b1c9 *DESCRIPTION
 e3c3d42ef4b8d6bf2044c385475dab30 *LICENSE
 9b04d1c4c23553b81f0fbcfadbf787c8 *NAMESPACE
-404f8f3ca316e80b96182daa2b02316d *NEWS.md
-d829a579801904e311a09878d3da04f1 *R/fnsComparison.R
-6bc1a247e88790a01b44a954a0ef1cbb *R/fnsOutputs.R
-c1848cfc6b45421325a0924b8ae99e98 *R/zzz.R
+0b1f043018b4a115927ee38621ff822d *NEWS.md
+ef131605a127f2b1fde106040de74d41 *R/fnsComparison.R
+b0e6da67fae6343dacc0a3f7ce1c9dad *R/fnsOutputs.R
+e100309736eb08847a90fca6a9e400e9 *R/zzz.R
 ae7ffd48da277e07368d9e89563ceda2 *data/results_2010.rda
 269eeff6366e790d1f538b4741d7ed10 *data/results_2011.rda
 186f8973826163a669d9b6045ee45401 *man/compare_df.Rd
 82824e12554ce0fd98bf30a3ec86ebc0 *man/create_output_table.Rd
+dccc500be2563a4c622fa11aa0414a19 *man/figures/compareDF_excel_output.png
 7d8cd20f0948b1e42a2eae503619aa18 *man/figures/pic_1.png
 96f55244ab06a58e47f10ad101b0bfe3 *man/figures/pic_2.png
 d5e17a3ec3b47be1cca7e9d2e1692162 *man/figures/pic_3.png
@@ -16,5 +17,5 @@ b1e525be87872480338868e9cba59efc *man/results_2010.Rd
 3c35babb25bd7671fb7633a10a49ba87 *man/results_2011.Rd
 4bdbf47d4aa69fcd9ba5f67128bce67d *man/view_html.Rd
 9119c6400d80b83afe2e023417e0cb9a *tests/testthat.R
-a5fea9addeac8353244ee211fcdb8a3d *tests/testthat/test-fnsComparison.R
+984be9563101b064c9c7bd18c692e72c *tests/testthat/test-fnsComparison.R
 537492b9be91d8e2164ce98ca4cb5abd *tests/testthat/test-fnsOutputs.R
