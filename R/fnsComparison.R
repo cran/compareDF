@@ -1,5 +1,4 @@
-
-utils::globalVariables(c("is_changed", "newold_type", "group_indices"))
+utils::globalVariables(c("is_changed", "newold_type"))
 .datatable.aware = TRUE
 
 #' @title Compare Two dataframes
@@ -49,6 +48,9 @@ compare_df <- function(df_new, df_old, group_col, exclude = NULL, tolerance = 0,
   options(stringsAsFactors = FALSE)
   on.exit(options(stringsAsFactors = current_saf_val))
 
+  data.table::setDT(df_old)
+  data.table::setDT(df_new)
+
   if (missing(group_col)) {
     warning("Missing grouping columns. Adding rownames to use as the default")
     group_col = 'rowname'
@@ -62,7 +64,7 @@ compare_df <- function(df_new, df_old, group_col, exclude = NULL, tolerance = 0,
   check_if_comparable(both_tables$df_new, both_tables$df_old, group_col, stop_on_error)
   both_tables = convert_factors_to_character(both_tables)
 
-  both_tables$df_new = both_tables$df_new[, names(both_tables$df_old)]
+  both_tables$df_new = both_tables$df_new[, .SD, .SDcols = names(both_tables$df_old)]
 
   if (length(group_col) > 1) {
     both_tables = group_columns(both_tables, group_col)
@@ -153,12 +155,14 @@ exclude_columns <- function(both_tables, exclude){
        df_new = both_tables$df_new %>% select(-one_of(exclude)))
 }
 
+#' @importFrom dplyr group_indices
 group_columns <- function(both_tables, group_col){
   message_compareDF("Grouping columns")
   df_combined = rbind(both_tables$df_new %>% mutate(from = "new"), both_tables$df_old %>% mutate(from = "old"))
-  df_combined =  df_combined %>%
+  df_combined = df_combined %>%
     group_by_at(group_col) %>%
-    data.frame(grp = group_indices(.), .) %>% ungroup()
+    data.frame(grp = group_indices(.), ., check.names = FALSE) %>%
+    ungroup()
   list(df_new = df_combined %>% filter(from == "new") %>% select(-from),
        df_old = df_combined %>% filter(from == "old") %>% select(-from))
 }
@@ -181,8 +185,8 @@ combined_rowdiffs_v2 <- function(both_tables, group_col){
   df_combined[is.na(chng_type), chng_type := TRUE]
 
   list(
-    df1_2 = df_combined[newold_type == 'old' & chng_type,,] %>% data.frame() %>% select(-newold_type, -chng_type),
-    df2_1 = df_combined[newold_type == 'new' & chng_type,,] %>% data.frame() %>% select(-newold_type, -chng_type)
+    df1_2 = df_combined[newold_type == 'old' & chng_type,,] %>% data.frame(check.names = FALSE) %>% select(-newold_type, -chng_type),
+    df2_1 = df_combined[newold_type == 'new' & chng_type,,] %>% data.frame(check.names = FALSE) %>% select(-newold_type, -chng_type)
   )
 }
 
@@ -201,9 +205,9 @@ check_if_similar_after_unique_and_reorder <- function(both_tables, both_diffs, s
 
 create_comparison_table <- function(both_diffs, group_col, round_output_to){
   message_compareDF("Creating comparison table...")
-  mixed_df = both_diffs$df1_2 %>% mutate(chng_type = NA_integer_) %>% slice(0) %>% data.frame()
-  if(nrow(both_diffs$df1_2) != 0) mixed_df = mixed_df %>% rbind(data.frame(chng_type = "1", both_diffs$df1_2))
-  if(nrow(both_diffs$df2_1) != 0) mixed_df = mixed_df %>% rbind(data.frame(chng_type = "2", both_diffs$df2_1))
+  mixed_df = both_diffs$df1_2 %>% mutate(chng_type = NA_integer_) %>% slice(0) %>% data.frame(check.names = FALSE)
+  if(nrow(both_diffs$df1_2) != 0) mixed_df = mixed_df %>% rbind(data.frame(chng_type = "1", both_diffs$df1_2, check.names = FALSE))
+  if(nrow(both_diffs$df2_1) != 0) mixed_df = mixed_df %>% rbind(data.frame(chng_type = "2", both_diffs$df2_1, check.names = FALSE))
   mixed_df %>%
     arrange(desc(chng_type)) %>%
     arrange_at(group_col) %>%
@@ -214,7 +218,8 @@ create_comparison_table <- function(both_diffs, group_col, round_output_to){
 
 create_comparison_table_diff <- function(comparison_table_ts2char, group_col, tolerance, tolerance_type){
   comparison_table_ts2char %>% group_by_at(group_col) %>%
-    do(.diff_type_df(., tolerance = tolerance, tolerance_type = tolerance_type)) %>% as.data.frame
+    do(.diff_type_df(., tolerance = tolerance, tolerance_type = tolerance_type)) %>%
+    as.data.frame
 }
 
 eliminate_tolerant_rows <- function(comparison_table, comparison_table_diff){
@@ -268,7 +273,7 @@ round_num_cols <- function(df, round_digits = 2)
     }
     # This step decides what colour it should be.
     score = score + score * as.numeric(df$chng_type == "2")
-  }) %>% data.frame
+  }) %>% data.frame(check.names = FALSE)
 }
 
 # Courtesy - Gabor Grothendieck
@@ -297,7 +302,9 @@ sequence_order_vector <- function(data)
 
 create_change_count <- function(comparison_table_ts2char, group_col){
   change_count = comparison_table_ts2char %>% group_by_at(c(group_col, "chng_type")) %>% tally()
-  change_count_replace = change_count %>% tidyr::spread(key = chng_type, value = n) %>% data.frame
+  change_count_replace = change_count %>%
+    tidyr::pivot_wider(names_from = chng_type, values_from = n, names_prefix = "X") %>%
+    data.frame(check.names = F)
   change_count_replace[is.na(change_count_replace)] = 0
 
   if(is.null(change_count_replace[['X1']])) change_count_replace = change_count_replace %>% mutate(X1 = 0L)
@@ -305,12 +312,12 @@ create_change_count <- function(comparison_table_ts2char, group_col){
   change_count_replace = change_count_replace %>% as.data.frame %>%
     tidyr::gather_("variable", "value", c("X2", "X1"))
 
-  change_count = change_count_replace %>% group_by_at(group_col) %>% arrange_at('variable') %>%
+  change_count_output = change_count_replace %>% group_by_at(group_col) %>% arrange_at('variable') %>%
     summarize(changes = min(value), additions = value[2] - value[1], removals = value[1] - value[2]) %>%
     mutate(additions = replace(additions, is.na(additions) | additions < 0, 0)) %>%
     mutate(removals = replace(removals, is.na(removals) | removals < 0, 0))
 
-  change_count %>% data.frame()
+  change_count_output %>% data.frame(check.names = FALSE)
 
 }
 
