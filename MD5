@@ -1,8 +1,8 @@
-075f64687f91275223a184bd457c092f *DESCRIPTION
+ea9de61a17b9dab20afbc3fdb575455f *DESCRIPTION
 a867c93d5dfaed0f2c0902b9d2d3e149 *LICENSE
 cd34fddcc58fd0864b51d2d1b7bed5fc *NAMESPACE
-a2e3262a6ebf83724894e070801db10e *NEWS.md
-59750d922e5d0d977b35d5679bdc6788 *R/fnsComparison.R
+35a6c7b10dca6e1506cd2174f0abbf54 *NEWS.md
+4fb09dff65ae2f11da24a021a5dc7c86 *R/fnsComparison.R
 b31edfeef500238739f1608063bbb39f *R/fnsOutputs.R
 e100309736eb08847a90fca6a9e400e9 *R/zzz.R
 ae7ffd48da277e07368d9e89563ceda2 *data/results_2010.rda
@@ -18,5 +18,5 @@ b1e525be87872480338868e9cba59efc *man/results_2010.Rd
 3c35babb25bd7671fb7633a10a49ba87 *man/results_2011.Rd
 018991e62463ed02e80c6d5090e8f69c *man/view_html.Rd
 9119c6400d80b83afe2e023417e0cb9a *tests/testthat.R
-75c136fba0d12cd31b91f79586a1dbf5 *tests/testthat/test-fnsComparison.R
+1ca946e61bb6b71f7806b6e59676b88a *tests/testthat/test-fnsComparison.R
 9848ea8baa365443589f78c2ae6ae71e *tests/testthat/test-fnsOutputs.R

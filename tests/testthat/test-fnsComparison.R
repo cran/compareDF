@@ -446,6 +446,27 @@ test_that("Uses generated row names as default if grouping column is provided", 
   # options(stringsAsFactors = FALSE)
 })
 
+#===============================================================================
+context("compare_df: Works with dates")
+
+test_that("Uses generated row names as default if grouping column is provided", {
+  df1 <- data.frame(a = letters[2:5], b = as.Date(2:5, origin = as.Date("1970-01-01")), row = 1:4)
+  df2 <- data.frame(a = letters[1:3], b = as.Date(1:3, origin = as.Date("1970-01-01")), row = 1:3)
+  
+  df_compare = compare_df(df1, df2, "row", keep_unchanged_rows = TRUE)
+  
+  expected_df = data.frame(
+    row = c(1, 1, 2, 2, 3, 3, 4), 
+    chng_type = c("+", "-", "+", "-", "+", "-", "+"),
+    b = c("b", "a", "c", "b", "d", "c", "e"), 
+    a = as.character(as.Date(c(2, 1, 3, 2, 4, 3, 5), origin = as.Date("1970-01-01")))
+  )
+  
+  expect_equivalent(df_compare$comparison_df, expected_df)
+  # options(stringsAsFactors = FALSE)
+})
+
+
 
 #===============================================================================
 context("compare_df: Change Markers")
@@ -513,4 +534,17 @@ test_that("global data is preserved", {
   output = compare_df(new_df, old_df, c("var1"))
   expect_false(data.table::is.data.table(old_df))
   expect_false(data.table::is.data.table(new_df))
+})
+
+#==============================================================================
+context("compare_df: shouldn't lose precision by rounding before output")
+test_that("Works fine without rounding", {
+  
+  old_df = data.frame(group = "A", value = -0.100000000000001)
+  new_df = data.frame(group = "B", value = 0.1)
+  
+  output = compare_df(new_df, old_df, group_col = c("group"), keep_unchanged_rows = TRUE, tolerance = 0)
+  
+  expected_output = data.frame(group = c("A", "B"), chng_type=c("-", "+"), value=c(-0.100000000000001, 0.1))
+  expect_equal(expected_output, output$comparison_df)
 })

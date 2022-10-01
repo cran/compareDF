@@ -67,7 +67,7 @@ compare_df <- function(df_new, df_old, group_col, exclude = NULL, tolerance = 0,
 
   check_if_similar_after_unique_and_reorder(both_tables, both_diffs, stop_on_error)
 
-  comparison_table         = create_comparison_table(both_diffs, group_col, round_output_to)
+  comparison_table         = create_comparison_table(both_diffs, group_col)
   comparison_table_ts2char = .ts2char(comparison_table)
   comparison_table_diff    = create_comparison_table_diff(comparison_table_ts2char, group_col, tolerance, tolerance_type)
 
@@ -119,6 +119,10 @@ convert_factors_to_character <- function(both_tables){
     if (any(vapply(x, is.factor, TRUE))) {
       message_compareDF("Found factor columns! Will be casted to character for comparison!")
       x = x %>% mutate_if(is.factor, as.character)
+    }
+    if (any(vapply(x, . %>% inherits("Date"), TRUE))) {
+      message_compareDF("Found Date columns! Will be casted to character for comparison!")
+      x = x %>% mutate_if(. %>% inherits("Date"), as.character)
     }
     x
   })
@@ -198,7 +202,7 @@ check_if_similar_after_unique_and_reorder <- function(both_tables, both_diffs, s
 
 }
 
-create_comparison_table <- function(both_diffs, group_col, round_output_to){
+create_comparison_table <- function(both_diffs, group_col){
   message_compareDF("Creating comparison table...")
   mixed_df = both_diffs$df1_2 %>% mutate(chng_type = NA_integer_) %>% slice(0) %>% data.frame(check.names = FALSE)
   if(nrow(both_diffs$df1_2) != 0) mixed_df = mixed_df %>% rbind(data.frame(chng_type = "1", both_diffs$df1_2, check.names = FALSE))
@@ -207,7 +211,7 @@ create_comparison_table <- function(both_diffs, group_col, round_output_to){
     arrange(desc(chng_type)) %>%
     arrange_at(group_col) %>%
     # mutate(chng_type = ifelse(chng_type == 1, "1", "2")) %>%
-    select(one_of(group_col), everything()) %>% round_num_cols(round_output_to)
+    select(one_of(group_col), everything())
 }
 
 
@@ -236,14 +240,6 @@ check_if_comparable <- function(df_new, df_old, group_col, stop_on_error){
 
   return(TRUE)
 
-}
-
-round_num_cols <- function(df, round_digits = 2)
-{
-  numeric_cols = which(sapply(df, is.numeric))
-  df[, numeric_cols] = lapply(df[, numeric_cols, drop = F], round, round_digits)
-
-  df
 }
 
 #' @importFrom stats na.omit
@@ -348,4 +344,12 @@ get_headers_for_table <- function(headers, change_col_name, group_col_name, comp
 #
 #   list(df1_2 = rowdiff(both_tables$df_old, both_tables$df_new),
 #        df2_1 = rowdiff(both_tables$df_new, both_tables$df_old))
+# }
+
+# round_num_cols <- function(df, round_digits = 2)
+# {
+#   numeric_cols = which(sapply(df, is.numeric))
+#   df[, numeric_cols] = lapply(df[, numeric_cols, drop = F], round, round_digits)
+# 
+#   df
 # }
